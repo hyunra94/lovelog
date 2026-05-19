@@ -307,7 +307,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 
 <!-- ══ SETTINGS SHEET ════════════════════ -->
 <div class="s-ov" id="set-ov" onclick="closeSettings()"></div>
-<div class="sheet" id="set-sh" style="max-height:75vh">
+<div class="sheet" id="set-sh" style="max-height:85vh">
   <div class="sh-hdl"></div>
   <div class="sh-head">
     <span class="sh-title">⚙️ 설정</span>
@@ -324,6 +324,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
     <div class="sset"><label>이름</label><input type="text" id="set-name" placeholder="이름을 입력하세요"></div>
     <div class="sset"><label>한마디</label><input type="text" id="set-msg" placeholder="입력하고 싶은 말"></div>
     <div class="sset"><label>사귄 날 (D-Day 카운트 시작)</label><input type="date" id="set-anniv"></div>
+
+    <div class="sset" style="margin-top:14px;padding-top:14px;border-top:1px solid #FFE4EF">
+      <label style="font-weight:700;color:#FF85A2">🔌 Worker URL</label>
+      <input type="url" id="set-worker" placeholder="https://xxxxx.workers.dev" style="font-size:13px;margin-top:6px">
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="testWorker()" style="flex:1;padding:9px;border:1.5px solid #FFD6E7;border-radius:10px;background:#FFF0F5;color:#FF85A2;font-size:13px;font-weight:600;cursor:pointer">연결 테스트</button>
+      </div>
+      <div id="worker-status" style="font-size:12px;margin-top:7px;padding:8px 10px;border-radius:8px;display:none"></div>
+    </div>
+
     <button class="savebtn" onclick="saveSettings()">✓ &nbsp;저장</button>
   </div>
 </div>
@@ -366,7 +376,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 <div class="toast" id="toast"></div>
 
 <script>
-const WORKER = 'https://lovelog.hyunra94.workers.dev';
+let WORKER = localStorage.getItem('ll_worker') || 'https://love-log-worker.abyss9405.workers.dev';
 const SECRET = 'hyunra2026';
 const SHARE_CACHE = 'love-log-share-v1';
 
@@ -427,6 +437,8 @@ function openSettings(){
   document.getElementById('set-name').value =localStorage.getItem('ll_name') ||'';
   document.getElementById('set-msg').value  =localStorage.getItem('ll_msg')  ||'';
   document.getElementById('set-anniv').value=localStorage.getItem('ll_anniv')||'';
+  document.getElementById('set-worker').value=localStorage.getItem('ll_worker')||'';
+  document.getElementById('worker-status').style.display='none';
   const av=localStorage.getItem('ll_avatar');
   if(av) document.getElementById('set-av-prev').innerHTML=`<img src="${av}" alt="">`;
   showSheet('set-ov','set-sh');
@@ -436,10 +448,13 @@ function saveSettings(){
   const n=document.getElementById('set-name').value.trim();
   const m=document.getElementById('set-msg').value.trim();
   const a=document.getElementById('set-anniv').value;
+  const w=document.getElementById('set-worker').value.trim().replace(/\/$/,'');
   if(n) localStorage.setItem('ll_name',n);
   if(m) localStorage.setItem('ll_msg',m);
   if(a) localStorage.setItem('ll_anniv',a);
+  if(w){ localStorage.setItem('ll_worker',w); WORKER=w; }
   loadProfile(); closeSettings(); showToast('✓ 설정 저장됨');
+  if(w) { loadOptions(); loadGrid(true); }
 }
 
 // ── 그리드 ─────────────────────────────────────────────
@@ -580,7 +595,25 @@ function setMain(idx){if(idx===0)return;const[i]=mediaItems.splice(idx,1);mediaI
 function removeMedia(idx){URL.revokeObjectURL(mediaItems[idx].url);mediaItems.splice(idx,1);renderStrip();}
 function onFileSelect(e){Array.from(e.target.files).forEach(f=>addMedia(f,f.name));e.target.value='';}
 
+async function testWorker(){
+  const w=document.getElementById('set-worker').value.trim().replace(/\/$/,'');
+  const st=document.getElementById('worker-status');
+  if(!w){st.style.display='block';st.style.background='#FFF8E1';st.style.color='#E65100';st.textContent='⚠️ URL을 먼저 입력해주세요';return;}
+  st.style.display='block';st.style.background='#F5F5F5';st.style.color='#888';st.textContent='🔄 연결 확인 중...';
+  try{
+    const res=await fetch(w+'/options',{method:'GET',headers:{'X-Secret-Key':SECRET,'Content-Type':'application/json'}});
+    const data=await res.json();
+    if(res.status===401){st.style.background='#FFF8E1';st.style.color='#E65100';st.textContent='⚠️ 인증 실패 — SECRET_KEY 값을 확인해주세요';}
+    else if(data.구분!==undefined){st.style.background='#E8F5E9';st.style.color='#2E7D32';st.textContent='✅ 연결 성공! Worker 정상 동작 중';}
+    else{st.style.background='#FFF8E1';st.style.color='#E65100';st.textContent='⚠️ 응답은 왔지만 형식이 달라요: '+JSON.stringify(data).slice(0,60);}
+  }catch(e){
+    st.style.background='#FFEBEE';st.style.color='#C62828';
+    st.textContent='❌ 연결 실패 — URL 확인 또는 CORS 문제: '+e.message;
+  }
+}
+
 // ── 옵션 ───────────────────────────────────────────────
+async function loadOptions(){
 async function loadOptions(){
   try{
     const res=await api('/options');
@@ -589,7 +622,12 @@ async function loadOptions(){
     (res.구분||[]).forEach(o=>{const c=mkChip(o.name,()=>toggleCat(o.name,c));ce.appendChild(c);});
     const te=document.getElementById('tag-chips'); te.innerHTML='';
     (res.태그||[]).forEach(o=>{allTags.push(o.name);const c=mkChip(o.name,()=>toggleTag(o.name,c));te.appendChild(c);});
-  }catch(e){showToast('옵션 로드 실패');}
+  }catch(e){
+    const errHtml='<span style="font-size:12px;color:#E53935">⚠️ 로드 실패 — ≡ 메뉴에서 Worker URL을 확인해주세요</span>';
+    document.getElementById('cat-chips').innerHTML=errHtml;
+    document.getElementById('tag-chips').innerHTML='';
+    console.error('[loadOptions]',e);
+  }
 }
 function mkChip(text,cb){const c=document.createElement('div');c.className='chip';c.textContent=text;c.addEventListener('click',cb);return c;}
 function toggleCat(name,chip){document.querySelectorAll('#cat-chips .chip').forEach(c=>c.classList.remove('on'));selCat=selCat===name?null:name;if(selCat)chip.classList.add('on');}
