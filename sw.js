@@ -15,9 +15,9 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   // 갤러리 공유 진입점 처리
-  if (url.pathname === '/love-log/share-target' && event.request.method === 'POST') {
+  if (url.pathname === '/lovelog/share-target' && event.request.method === 'POST') {
     // 1) 즉시 메인 페이지로 리다이렉트 (사용자에게 빠른 응답)
-    event.respondWith(Response.redirect('/love-log/?shared=1', 303));
+    event.respondWith(Response.redirect('/lovelog/?shared=1', 303));
     // 2) 백그라운드에서 공유된 파일을 Cache에 저장
     event.waitUntil(saveSharedFiles(event.request.clone()));
     return;
@@ -43,7 +43,7 @@ async function saveSharedFiles(request) {
     const meta = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const cacheKey = `/love-log/shared-file-${i}`;
+      const cacheKey = `/lovelog/shared-file-${i}`;
 
       // ArrayBuffer로 변환 후 Response로 저장
       const buf = await file.arrayBuffer();
@@ -63,7 +63,7 @@ async function saveSharedFiles(request) {
     }
 
     // 메타데이터 저장
-    await cache.put('/love-log/shared-meta', new Response(JSON.stringify(meta), {
+    await cache.put('/lovelog/shared-meta', new Response(JSON.stringify(meta), {
       headers: { 'Content-Type': 'application/json' }
     }));
 
