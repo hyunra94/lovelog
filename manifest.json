@@ -1,0 +1,36 @@
+{
+  "name": "LOVE LOG",
+  "short_name": "LOVE LOG",
+  "description": "우리의 데이트 일지",
+  "start_url": "/love-log/?utm_source=pwa",
+  "scope": "/love-log/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF0F5",
+  "theme_color": "#FF85A2",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "https://hyunra94.github.io/assets/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/love-log/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "media",
+          "accept": ["image/*", "video/*"]
+        }
+      ]
+    }
+  }
+}
