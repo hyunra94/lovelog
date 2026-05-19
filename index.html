@@ -376,7 +376,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 <div class="toast" id="toast"></div>
 
 <script>
-let WORKER = localStorage.getItem('ll_worker') || 'https://love-log-worker.abyss9405.workers.dev';
+let WORKER = localStorage.getItem('ll_worker') || 'https://lovelog.hyunra94.workers.dev';
 const SECRET = 'hyunra2026';
 const SHARE_CACHE = 'love-log-share-v1';
 
@@ -405,6 +405,8 @@ document.addEventListener('DOMContentLoaded', async()=>{
   loadOptions();
   loadGrid(true);
   renderStrip();
+  // 연결 상태 표시 (디버그용)
+  showToast('🔗 연결 중: ' + WORKER.replace('https://','').slice(0,30));
 });
 
 // ── 프로필 ─────────────────────────────────────────────
