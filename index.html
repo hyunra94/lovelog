@@ -439,8 +439,8 @@ function openSettings(){
   document.getElementById('set-name').value =localStorage.getItem('ll_name') ||'';
   document.getElementById('set-msg').value  =localStorage.getItem('ll_msg')  ||'';
   document.getElementById('set-anniv').value=localStorage.getItem('ll_anniv')||'';
-  document.getElementById('set-worker').value=localStorage.getItem('ll_worker')||'';
-  document.getElementById('worker-status').style.display='none';
+  const sw=document.getElementById('set-worker'); if(sw) sw.value=localStorage.getItem('ll_worker')||'';
+  const st=document.getElementById('worker-status'); if(st) st.style.display='none';
   const av=localStorage.getItem('ll_avatar');
   if(av) document.getElementById('set-av-prev').innerHTML=`<img src="${av}" alt="">`;
   showSheet('set-ov','set-sh');
@@ -616,7 +616,6 @@ async function testWorker(){
 
 // ── 옵션 ───────────────────────────────────────────────
 async function loadOptions(){
-async function loadOptions(){
   try{
     const res=await api('/options');
     titleProp=res._meta?.titleProp||'이름'; checkboxProp=res._meta?.checkboxProp||'체크';
@@ -625,9 +624,9 @@ async function loadOptions(){
     const te=document.getElementById('tag-chips'); te.innerHTML='';
     (res.태그||[]).forEach(o=>{allTags.push(o.name);const c=mkChip(o.name,()=>toggleTag(o.name,c));te.appendChild(c);});
   }catch(e){
-    const errHtml='<span style="font-size:12px;color:#E53935">⚠️ 로드 실패 — ≡ 메뉴에서 Worker URL을 확인해주세요</span>';
-    document.getElementById('cat-chips').innerHTML=errHtml;
-    document.getElementById('tag-chips').innerHTML='';
+    const errHtml='<span style="font-size:12px;color:#E53935">⚠️ 로드 실패 — ≡ 메뉴에서 Worker URL 확인</span>';
+    const ce=document.getElementById('cat-chips'); if(ce) ce.innerHTML=errHtml;
+    const te=document.getElementById('tag-chips'); if(te) te.innerHTML='';
     console.error('[loadOptions]',e);
   }
 }
