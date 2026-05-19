@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="https://hyunra94.github.io/assets/favicon.png">
   <meta property="og:title" content="LOVE LOG">
   <meta property="og:image" content="https://hyunra94.github.io/assets/og-default.png">
-  <meta property="og:url" content="https://hyunra94.github.io/love-log/">
+  <meta property="og:url" content="https://hyunra94.github.io/lovelog/">
   <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -386,7 +386,7 @@ let dateTimer=null;
 
 document.addEventListener('DOMContentLoaded', async()=>{
   if('serviceWorker' in navigator)
-    navigator.serviceWorker.register('/love-log/sw.js',{scope:'/love-log/'}).catch(()=>{});
+    navigator.serviceWorker.register('/lovelog/sw.js',{scope:'/lovelog/'}).catch(()=>{});
 
   loadProfile();
 
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', async()=>{
   const p=new URLSearchParams(location.search);
   if(p.get('shared')){
     await loadSharedFiles();
-    history.replaceState({},'','/love-log/');
+    history.replaceState({},'','/lovelog/');
     openWrite();
   }
 
@@ -555,7 +555,7 @@ function closeWrite(){hideSheet('write-ov','write-sh');}
 async function loadSharedFiles(){
   try{
     const cache=await caches.open(SHARE_CACHE);
-    const mr=await cache.match('/love-log/shared-meta'); if(!mr) return;
+    const mr=await cache.match('/lovelog/shared-meta'); if(!mr) return;
     const meta=await mr.json();
     for(const item of meta){
       const r=await cache.match(item.cacheKey); if(!r) continue;
