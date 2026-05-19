@@ -2,8 +2,8 @@
   "name": "LOVE LOG",
   "short_name": "LOVE LOG",
   "description": "우리의 데이트 일지",
-  "start_url": "/love-log/?utm_source=pwa",
-  "scope": "/love-log/",
+  "start_url": "/lovelog/?utm_source=pwa",
+  "scope": "/lovelog/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FFF0F5",
@@ -18,7 +18,7 @@
     }
   ],
   "share_target": {
-    "action": "/love-log/share-target",
+    "action": "/lovelog/share-target",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
