@@ -553,25 +553,61 @@ function saveSettings(){
   if(w) { loadOptions(); loadGrid(true); }
 }
 
+const CACHE_KEY='ll_entries_v2';
+
+// ── 캐시 헬퍼 ──────────────────────────────────────────
+function readCache(){
+  try{
+    const raw=localStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    const d=JSON.parse(raw);
+    // 24시간 유효
+    if(Date.now()-d.ts>86400000) return null;
+    return d;
+  }catch{return null;}
+}
+function writeCache(entries,hasMore,cursor){
+  try{
+    localStorage.setItem(CACHE_KEY,JSON.stringify({entries,hasMore,cursor,ts:Date.now()}));
+  }catch{} // 용량 초과 무시
+}
+function clearCache(){ try{localStorage.removeItem(CACHE_KEY);}catch{} }
+
 // ── 그리드 ─────────────────────────────────────────────
 async function loadGrid(reset=false){
   const grid=document.getElementById('photo-grid');
   if(reset){
-    grid.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--mute);font-size:13px">🌸 불러오는 중...</div>';
     nextCursor=null; allEntries=[];
+
+    // ① 캐시 즉시 표시
+    const cached=readCache();
+    if(cached&&cached.entries.length){
+      allEntries=cached.entries;
+      renderGrid(allEntries);
+      document.getElementById('lm-wrap').style.display=cached.hasMore?'block':'none';
+    } else {
+      grid.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--mute);font-size:13px">🌸 불러오는 중...</div>';
+    }
   }
+
+  // ② 백그라운드(또는 더보기)로 실제 fetch
   try{
     const q=nextCursor?`/entries?cursor=${nextCursor}`:'/entries';
     const res=await api(q);
-    if(reset) grid.innerHTML='';
-    allEntries=[...allEntries,...res.entries];
+    if(reset){
+      allEntries=res.entries;
+      writeCache(res.entries,res.hasMore,res.nextCursor);
+    } else {
+      allEntries=[...allEntries,...res.entries];
+    }
     renderGrid(allEntries);
     nextCursor=res.nextCursor;
     document.getElementById('lm-wrap').style.display=res.hasMore?'block':'none';
     if(allEntries.length===0)
       grid.innerHTML='<div style="grid-column:1/-1;padding:50px 20px;text-align:center;color:var(--mute);font-size:13px;line-height:2">💕<br>아직 기록이 없어요<br>+ 버튼으로 첫 데이트를 기록해봐요!</div>';
   }catch(e){
-    if(reset) grid.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--mute)">⚠️ 불러오기 실패</div>';
+    if(allEntries.length===0)
+      grid.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--mute)">⚠️ 불러오기 실패</div>';
   }
 }
 function renderGrid(entries){
@@ -787,31 +823,73 @@ function closeEditMode(){
 }
 
 async function saveEdit(){
-  const e=currentEntry; if(!e){ showToast('⚠️ 항목 정보 없음'); return; }
-  const day=document.getElementById('edit-day').value.trim();
-  const memo=document.getElementById('edit-memo').value.trim();
-  const btn=document.querySelector('.det-save-btn');
+  // 폼 내부 에러 표시 헬퍼
+  function showEditErr(msg){
+    let el=document.getElementById('edit-err-msg');
+    if(!el){
+      el=document.createElement('div');
+      el.id='edit-err-msg';
+      el.style.cssText='padding:10px 12px;background:#FFEBEE;color:#C62828;border-radius:8px;font-size:13px;margin-bottom:12px;';
+      const form=document.getElementById('det-edit-form');
+      if(form) form.insertBefore(el,form.firstChild);
+    }
+    el.textContent=msg; el.style.display='block';
+  }
+  function hideEditErr(){
+    const el=document.getElementById('edit-err-msg');
+    if(el) el.style.display='none';
+  }
+
   try{
+    hideEditErr();
+    const e=currentEntry;
+    if(!e){ showEditErr('항목 정보가 없어요. 다시 열어주세요.'); return; }
+
+    const day=(document.getElementById('edit-day')?.value||'').trim();
+    const memo=(document.getElementById('edit-memo')?.value||'').trim();
+    const btn=document.querySelector('.det-save-btn');
+
     if(btn){ btn.disabled=true; btn.textContent='저장 중...'; }
-    await api('/entry','PATCH',{
-      pageId:e.id, day, memo,
-      구분:editSelCat, 태그:editSelTags,
-      coverUrl:editCoverUrl,
-      titleProp, checkboxProp,
-    });
-    e.day=day; e.memo=memo; e.cat=editSelCat; e.tags=editSelTags;
-    if(editCoverUrl) e.cover=editCoverUrl;
-    document.getElementById('det-day').textContent=day||'제목 없음';
-    document.getElementById('det-memo').textContent=memo||'';
-    document.getElementById('det-meta').textContent=`${e.date||''}${editSelCat?' · '+editSelCat:''}`;
-    document.getElementById('det-tags').innerHTML=editSelTags.map(t=>`<span class="det-tag">${escHtml(t)}</span>`).join('');
-    closeEditMode(); renderGrid(allEntries);
-    showToast('✅ 수정 완료!');
-  }catch(err){
-    console.error('[saveEdit]',err);
-    showToast('❌ 저장 실패: '+err.message);
-  }finally{
-    if(btn){ btn.disabled=false; btn.textContent='💾 저장'; }
+
+    try{
+      const res=await api('/entry','PATCH',{
+        pageId:e.id, day, memo,
+        구분:editSelCat, 태그:editSelTags,
+        coverUrl:editCoverUrl||null,
+        titleProp, checkboxProp,
+      });
+      if(res.error) throw new Error(res.error);
+
+      // 로컬 데이터 업데이트
+      e.day=day; e.memo=memo; e.cat=editSelCat; e.tags=editSelTags;
+      if(editCoverUrl) e.cover=editCoverUrl;
+
+      const dDay=document.getElementById('det-day');
+      const dMemo=document.getElementById('det-memo');
+      const dMeta=document.getElementById('det-meta');
+      const dTags=document.getElementById('det-tags');
+      if(dDay)  dDay.textContent=day||'제목 없음';
+      if(dMemo) dMemo.textContent=memo||'';
+      if(dMeta) dMeta.textContent=`${e.date||''}${editSelCat?' · '+editSelCat:''}`;
+      if(dTags) dTags.innerHTML=editSelTags.map(t=>`<span class="det-tag">${escHtml(t)}</span>`).join('');
+
+      // 캐시 갱신
+      writeCache(allEntries, false, null);
+
+      closeEditMode();
+      renderGrid(allEntries);
+      showToast('✅ 수정 완료!');
+
+    }catch(apiErr){
+      console.error('[saveEdit api]', apiErr);
+      showEditErr('❌ 저장 실패: ' + apiErr.message + '\n(Worker가 재배포됐는지 확인해주세요)');
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='💾 저장'; }
+    }
+  }catch(outerErr){
+    console.error('[saveEdit outer]', outerErr);
+    // 폼이 없을 경우 알림으로라도 표시
+    alert('오류 발생: ' + outerErr.message);
   }
 }
 
@@ -1009,6 +1087,7 @@ async function submitEntry(){
     if(result.success){
       showToast('✅ 등록 완료!');
       if('vibrate'in navigator)navigator.vibrate([30,50,30]);
+      clearCache();
       resetForm(); closeWrite(); loadGrid(true);
     }else{showToast('❌ 등록 실패: '+(result.error||'알 수 없는 오류'));}
   }catch(e){hideLoading();showToast('❌ '+e.message);}
