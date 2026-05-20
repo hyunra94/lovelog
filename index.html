@@ -73,12 +73,40 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 
 /* ── 바텀 네비 ────────────────── */
 .bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid #F0F0F0;display:flex;align-items:center;padding-bottom:env(safe-area-inset-bottom);z-index:100;}
-.nb{flex:1;height:100%;display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;position:relative;transition:color .2s;}
+.nb{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;color:#999;position:relative;transition:color .2s;font-size:10px;font-weight:500;}
 .nb.on{color:var(--pink);}
-.nb svg{width:24px;height:24px;fill:currentColor;}
-.nb-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--pink);color:white;font-size:9px;padding:1px 5px;border-radius:99px;font-weight:700;line-height:1.4;}
-.nb-av{width:28px;height:28px;border-radius:50%;background:var(--bg);overflow:hidden;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:14px;}
-.nb-av img{width:100%;height:100%;object-fit:cover;}
+.nb svg{width:22px;height:22px;fill:currentColor;}
+.nb-lbl{font-size:10px;}
+
+/* ── 캘린더 뷰 ────────────────── */
+.cal-view{display:none;padding-bottom:16px;}
+.cal-view.on{display:block;}
+.cal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 8px;}
+.cal-title{font-size:16px;font-weight:700;}
+.cal-nav-btn{width:34px;height:34px;border:none;background:var(--bg);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text);}
+.cal-dows{display:grid;grid-template-columns:repeat(7,1fr);padding:0 8px;}
+.cal-dow{text-align:center;font-size:10px;font-weight:600;color:var(--mute);padding:4px 0;}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);padding:0 8px;gap:2px;}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-radius:10px;font-size:13px;transition:background .15s;}
+.cal-day:empty{pointer-events:none;}
+.cal-day .dn{line-height:1;}
+.cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--pink);flex-shrink:0;}
+.cal-day.today{font-weight:700;color:var(--pink);}
+.cal-day.has{background:#FFF0F5;}
+.cal-day.has .dot{display:block;}
+.cal-day .dot{display:none;}
+.cal-day.sel{background:var(--pink);color:white;}
+.cal-day.sel .dot{background:rgba(255,255,255,.8);}
+.cal-entries-wrap{padding:12px 14px 0;}
+.cal-entry{background:white;border-radius:12px;padding:11px 13px;margin-bottom:8px;box-shadow:0 2px 10px rgba(255,133,162,.1);display:flex;gap:10px;cursor:pointer;align-items:center;}
+.cal-entry-thumb{width:46px;height:46px;border-radius:8px;flex-shrink:0;object-fit:cover;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;}
+.cal-entry-thumb img{width:100%;height:100%;object-fit:cover;}
+.cal-entry-info{flex:1;min-width:0;}
+.cal-entry-day{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-entry-memo{font-size:12px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+.cal-entry-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.cal-entry-tag{font-size:10px;padding:2px 7px;background:var(--bg);color:var(--pink);border-radius:99px;}
+.cal-empty{text-align:center;padding:30px;color:var(--mute);font-size:13px;}
 
 /* ══ SHEETS ═══════════════════════════ */
 .s-ov{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:200;pointer-events:none;transition:background .3s;}
@@ -264,46 +292,46 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
     </div>
   </div>
 
-  <!-- 컨텐츠 탭 -->
-  <div class="ctabs">
-    <button class="ctab on" onclick="setCtab(this,'all')">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor"><path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z"/></svg>
-    </button>
-    <button class="ctab" onclick="setCtab(this,'video')">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor"><path d="M8 5v14l11-7z"/></svg>
-    </button>
-    <button class="ctab" onclick="setCtab(this,'sync')">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6a5.96 5.96 0 01-.82 3.03l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.11.3-2.14.82-3.03L5.36 7.51A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-    </button>
-    <button class="ctab" onclick="setCtab(this,'tag')">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></svg>
-    </button>
+  <!-- 컨텐츠 탭 제거됨 -->
+
+  <!-- 홈 그리드 -->
+  <div id="home-view">
+    <div class="grid" id="photo-grid"></div>
+    <div class="lm-wrap" id="lm-wrap" style="display:none">
+      <button class="lm-btn" onclick="loadMore()">⬇ 더 불러오기</button>
+    </div>
   </div>
 
-  <!-- 그리드 -->
-  <div class="grid" id="photo-grid"></div>
-  <div class="lm-wrap" id="lm-wrap" style="display:none">
-    <button class="lm-btn" onclick="loadMore()">⬇ 더 불러오기</button>
+  <!-- 캘린더 뷰 -->
+  <div class="cal-view" id="cal-view">
+    <div class="cal-hdr">
+      <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button class="cal-nav-btn" onclick="calMove(1)">›</button>
+    </div>
+    <div class="cal-dows">
+      <div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+      <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div>
+      <div class="cal-dow">토</div>
+    </div>
+    <div class="cal-days" id="cal-days"></div>
+    <div class="cal-entries-wrap" id="cal-entries"></div>
   </div>
 </main>
 
-<!-- 바텀 네비 -->
+<!-- 바텀 네비 (3버튼) -->
 <nav class="bnav">
-  <button class="nb on" id="nb-home" onclick="nbClick(this)">
+  <button class="nb on" id="nb-home" onclick="switchView('home',this)">
     <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="nb-lbl">홈</span>
   </button>
-  <button class="nb" id="nb-video" onclick="nbClick(this);setCtab(document.querySelector('.ctab:nth-child(2)'),'video')">
-    <svg viewBox="0 0 24 24"><path d="M4 6.47L5.76 10H20v8H4V6.47M22 4h-4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"/></svg>
+  <button class="nb" id="nb-cal" onclick="switchView('cal',this)">
+    <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+    <span class="nb-lbl">캘린더</span>
   </button>
-  <button class="nb" id="nb-filter" onclick="nbClick(this);openFilter()">
-    <svg viewBox="0 0 24 24"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0019 4H5a1 1 0 00-.75 1.61z"/></svg>
-    <span class="nb-badge" id="filter-badge" style="display:none">0</span>
-  </button>
-  <button class="nb" id="nb-search" onclick="nbClick(this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
-  </button>
-  <button class="nb" id="nb-profile" onclick="nbClick(this);openSettings()">
-    <div class="nb-av" id="nav-av"><span>💕</span></div>
+  <button class="nb" id="nb-settings" onclick="openSettings()">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    <span class="nb-lbl">설정</span>
   </button>
 </nav>
 
@@ -600,7 +628,11 @@ async function loadGrid(reset=false){
     } else {
       allEntries=[...allEntries,...res.entries];
     }
+    // 날짜 내림차순 정렬 보장
+    allEntries.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     renderGrid(allEntries);
+    // 캘린더 뷰에 있으면 캘린더도 갱신
+    if(currentView==='cal') renderCalendar();
     nextCursor=res.nextCursor;
     document.getElementById('lm-wrap').style.display=res.hasMore?'block':'none';
     if(allEntries.length===0)
@@ -647,11 +679,89 @@ function renderGrid(entries){
     grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--mute);font-size:13px">🔍 해당 조건의 기록이 없어요</div>';
 }
 function loadMore(){loadGrid(false);}
-function setCtab(el,mode){
-  document.querySelectorAll('.ctab').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on'); ctabMode=mode;
-  if(mode==='sync'){loadGrid(true);return;}
-  renderGrid(allEntries);
+function setCtab(){}
+function nbClick(){}
+// ── 뷰 전환 ────────────────────────────────────────────
+let currentView='home';
+function switchView(view, btn){
+  currentView=view;
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  document.getElementById('home-view').style.display = view==='home' ? '' : 'none';
+  document.getElementById('cal-view').classList.toggle('on', view==='cal');
+  if(view==='cal') renderCalendar();
+}
+
+// ── 캘린더 ──────────────────────────────────────────────
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=null;
+const MONTH_KO=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+function calMove(dir){
+  calMonth+=dir;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  calSel=null;
+  renderCalendar();
+}
+
+function renderCalendar(){
+  document.getElementById('cal-title').textContent=`${calYear}년 ${MONTH_KO[calMonth]}`;
+
+  // 날짜→항목 맵 (allEntries 기반)
+  const map={};
+  allEntries.forEach(e=>{
+    if(e.date){ if(!map[e.date]) map[e.date]=[]; map[e.date].push(e); }
+  });
+
+  const grid=document.getElementById('cal-days');
+  grid.innerHTML='';
+  const firstDow=new Date(calYear,calMonth,1).getDay(); // 0=Sun
+  const lastDate=new Date(calYear,calMonth+1,0).getDate();
+  const todayStr=new Date().toISOString().split('T')[0];
+
+  // 빈 칸 (이전 달)
+  for(let i=0;i<firstDow;i++){
+    const c=document.createElement('div'); c.className='cal-day'; grid.appendChild(c);
+  }
+
+  for(let d=1;d<=lastDate;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const c=document.createElement('div'); c.className='cal-day';
+    const hasE=map[ds]?.length>0;
+    if(ds===todayStr) c.classList.add('today');
+    if(hasE) c.classList.add('has');
+    if(ds===calSel) c.classList.add('sel');
+    c.innerHTML=`<span class="dn">${d}</span>${hasE?'<span class="dot"></span>':''}`;
+    if(hasE||true) c.onclick=()=>selectCalDate(ds,map[ds]||[]);
+    grid.appendChild(c);
+  }
+
+  // 선택된 날짜 항목 표시
+  if(calSel) renderCalEntries(calSel,map[calSel]||[]);
+  else document.getElementById('cal-entries').innerHTML='';
+}
+
+function selectCalDate(ds,entries){
+  calSel=ds; renderCalendar();
+  renderCalEntries(ds,entries);
+}
+
+function renderCalEntries(ds,entries){
+  const wrap=document.getElementById('cal-entries');
+  if(!entries.length){
+    wrap.innerHTML=`<div class="cal-empty">📅 ${ds}<br>기록이 없어요</div>`;
+    return;
+  }
+  wrap.innerHTML=`<div style="font-size:12px;color:var(--mute);margin-bottom:8px;padding:0 2px">📅 ${ds} — ${entries.length}개 기록</div>`
+    +entries.map((e,i)=>`
+    <div class="cal-entry" onclick="openDetail(allEntries.find(x=>x.id==='${e.id}'))">
+      <div class="cal-entry-thumb">${e.cover?`<img src="${e.cover}" alt="" loading="lazy">`:'💕'}</div>
+      <div class="cal-entry-info">
+        <div class="cal-entry-day">${escHtml(e.day||'제목 없음')}</div>
+        ${e.memo?`<div class="cal-entry-memo">${escHtml(e.memo)}</div>`:''}
+        <div class="cal-entry-tags">${(e.tags||[]).map(t=>`<span class="cal-entry-tag">${escHtml(t)}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
 }
 
 // ── 필터 ───────────────────────────────────────────────
@@ -910,7 +1020,15 @@ function closeImageViewer(){
 function initViewerGestures(){
   const wrap=document.getElementById('img-viewer-wrap');
   const img=document.getElementById('img-viewer-img');
-  let lastTap=0;
+  let lastTap=0, pinching=false;
+
+  function clampTranslate(){
+    if(vScale<=1){vTx=0;vTy=0;return;}
+    const maxX=(img.naturalWidth||wrap.clientWidth)*(vScale-1)/2;
+    const maxY=(img.naturalHeight||wrap.clientHeight)*(vScale-1)/2;
+    vTx=Math.max(-maxX,Math.min(maxX,vTx));
+    vTy=Math.max(-maxY,Math.min(maxY,vTy));
+  }
 
   function applyTransform(){
     img.style.transform=`translate(${vTx}px,${vTy}px) scale(${vScale})`;
@@ -918,37 +1036,48 @@ function initViewerGestures(){
 
   wrap.ontouchstart=e=>{
     if(e.touches.length===2){
+      pinching=true;
       vStartDist=Math.hypot(
         e.touches[0].clientX-e.touches[1].clientX,
         e.touches[0].clientY-e.touches[1].clientY);
       vStartScale=vScale;
       e.preventDefault();
-    } else if(e.touches.length===1){
+    } else if(e.touches.length===1&&!pinching){
       vSx=e.touches[0].clientX-vTx;
       vSy=e.touches[0].clientY-vTy;
       vDragging=true;
-      // 더블탭 리셋
       const now=Date.now();
-      if(now-lastTap<300){ vScale=1;vTx=0;vTy=0;applyTransform(); }
+      if(now-lastTap<280){vScale=1;vTx=0;vTy=0;applyTransform();}
       lastTap=now;
+      e.preventDefault();
     }
   };
+
   wrap.ontouchmove=e=>{
-    if(e.touches.length===2){
+    if(e.touches.length===2&&pinching){
       const dist=Math.hypot(
         e.touches[0].clientX-e.touches[1].clientX,
         e.touches[0].clientY-e.touches[1].clientY);
-      vScale=Math.min(6,Math.max(1,vStartScale*dist/vStartDist));
-      applyTransform(); e.preventDefault();
-    } else if(e.touches.length===1&&vDragging&&vScale>1){
-      vTx=e.touches[0].clientX-vSx;
-      vTy=e.touches[0].clientY-vSy;
-      applyTransform(); e.preventDefault();
+      // 감도 조절: 0.9 dampening
+      const rawScale=vStartScale*(dist/vStartDist);
+      vScale=vScale*0.7+rawScale*0.3; // 부드럽게
+      vScale=Math.min(5,Math.max(1,vScale));
+      clampTranslate(); applyTransform(); e.preventDefault();
+    } else if(e.touches.length===1&&vDragging&&vScale>1.05){
+      const rawTx=e.touches[0].clientX-vSx;
+      const rawTy=e.touches[0].clientY-vSy;
+      // 드래그 감도 0.85
+      vTx=vTx*0.15+rawTx*0.85;
+      vTy=vTy*0.15+rawTy*0.85;
+      clampTranslate(); applyTransform(); e.preventDefault();
     }
   };
+
   wrap.ontouchend=e=>{
+    if(e.touches.length<2) pinching=false;
     vDragging=false;
-    if(vScale<1.05){ vScale=1;vTx=0;vTy=0;applyTransform(); }
+    if(vScale<1.1){vScale=1;vTx=0;vTy=0;}
+    clampTranslate(); applyTransform();
   };
 }
 
