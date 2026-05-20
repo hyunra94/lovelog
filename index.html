@@ -787,12 +787,12 @@ function closeEditMode(){
 }
 
 async function saveEdit(){
-  const e=currentEntry; if(!e) return;
+  const e=currentEntry; if(!e){ showToast('⚠️ 항목 정보 없음'); return; }
   const day=document.getElementById('edit-day').value.trim();
   const memo=document.getElementById('edit-memo').value.trim();
-  const btn=document.getElementById('det-save-btn');
-  btn.disabled=true; btn.textContent='저장 중...';
+  const btn=document.querySelector('.det-save-btn');
   try{
+    if(btn){ btn.disabled=true; btn.textContent='저장 중...'; }
     await api('/entry','PATCH',{
       pageId:e.id, day, memo,
       구분:editSelCat, 태그:editSelTags,
@@ -807,8 +807,12 @@ async function saveEdit(){
     document.getElementById('det-tags').innerHTML=editSelTags.map(t=>`<span class="det-tag">${escHtml(t)}</span>`).join('');
     closeEditMode(); renderGrid(allEntries);
     showToast('✅ 수정 완료!');
-  }catch(err){ showToast('❌ '+err.message); }
-  finally{ btn.disabled=false; btn.textContent='💾 저장'; }
+  }catch(err){
+    console.error('[saveEdit]',err);
+    showToast('❌ 저장 실패: '+err.message);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='💾 저장'; }
+  }
 }
 
 // ── 풀스크린 이미지 뷰어 (핀치 줌) ───────────────────────
@@ -1041,7 +1045,7 @@ function setLoadMsg(t){document.getElementById('loading-msg').textContent=t;}
 function setProgress(p){document.getElementById('prog-fill').style.width=p+'%';}
 function hideLoading(){document.getElementById('loading').classList.remove('on');}
 let _tt;
-function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),3000);}
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),5000);}
 function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
 </body>
