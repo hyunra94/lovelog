@@ -151,15 +151,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 .mstrip::-webkit-scrollbar{display:none;}
 .mi{position:relative;flex-shrink:0;width:76px;height:76px;max-height:76px;border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .15s;}
 .mi:active{transform:scale(.95);}
-.mi.main{outline:3px solid var(--pink);}
+.mi.main{outline:3px solid var(--pink);background:#111;}
 .mi img,.mi video{width:100%;height:100%;object-fit:cover;display:block;}
+.mi.main img{object-fit:contain;}
 .mi-mb{position:absolute;top:3px;left:3px;background:var(--pink);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;}
 .mi-vb{position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,.5);color:#fff;width:18px;height:18px;border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;}
 .mi-rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:19px;height:19px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .madd{flex-shrink:0;width:76px;height:76px;border:2px dashed var(--bdr);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--mute);cursor:pointer;font-size:11px;gap:2px;background:white;}
 .madd .pl{font-size:22px;color:var(--pk2);}
 
-/* 칩 */
+/* 메모 2단 필드 */
+.memo-ttl{border-radius:10px 10px 0 0;border-bottom:1px solid var(--bdr);font-weight:700;font-size:15px;}
+.memo-bdy{border-radius:0 0 10px 10px;border-top:none;margin-top:0;}
+.memo-ttl:focus{outline:none;border-color:var(--pink);border-bottom-color:var(--bdr);}
+.memo-bdy:focus{outline:none;border-color:var(--pink);border-top-color:transparent;}
 .chips{display:flex;flex-wrap:wrap;gap:7px;}
 .chip{padding:6px 13px;border-radius:99px;font-size:13px;cursor:pointer;border:1.5px solid var(--bdr);background:white;color:var(--text);transition:all .18s;}
 .chip.on{background:var(--pink);border-color:var(--pink);color:#fff;}
@@ -361,8 +366,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
       <input type="text" id="day-input" class="fi" placeholder="예: 0403 에그하우스">
     </div>
     <div class="fc">
-      <div class="fl">📋 MEMO</div>
-      <textarea id="memo-input" class="fa" rows="3" placeholder="메모를 입력하세요"></textarea>
+      <div class="fl">📋 MEMO <small>· 첫 줄 굵게 자동 표시</small></div>
+      <input type="text" id="memo-title" class="fi memo-ttl" placeholder="첫 줄 — 제목 (굵게)">
+      <textarea id="memo-body" class="fa memo-bdy" rows="3" placeholder="내용 (두 번째 줄부터)"></textarea>
     </div>
     <div class="fc">
       <div class="fl">⊙ 구분</div>
@@ -1197,7 +1203,9 @@ async function checkDate(){
 async function submitEntry(){
   const date=document.getElementById('date-input').value;
   const day=document.getElementById('day-input').value.trim();
-  const memo=document.getElementById('memo-input').value.trim();
+  const memoT=(document.getElementById('memo-title')?.value||'').trim();
+  const memoB=(document.getElementById('memo-body')?.value||'').trim();
+  const memo=memoT&&memoB?`${memoT}\n${memoB}`:memoT||memoB;
   const chk=document.getElementById('check-input').checked;
   if(!date){showToast('날짜를 선택해주세요');return;}
   const btn=document.getElementById('submit-btn'); btn.disabled=true;
@@ -1225,7 +1233,7 @@ async function submitEntry(){
 function resetForm(){
   mediaItems.forEach(m=>URL.revokeObjectURL(m.url)); mediaItems=[];selCat=null;selTags=[];
   renderStrip();
-  ['day-input','memo-input'].forEach(id=>document.getElementById(id).value='');
+  ['day-input','memo-title','memo-body'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('check-input').checked=false;
   document.querySelectorAll('#write-sh .chip.on').forEach(c=>c.classList.remove('on'));
   document.getElementById('date-input').value=new Date().toISOString().split('T')[0];
