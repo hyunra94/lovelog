@@ -67,6 +67,11 @@ async function saveSharedFiles(request) {
       headers: { 'Content-Type': 'application/json' }
     }));
 
+    // ✅ 완료 플래그 — 앱이 폴링으로 대기할 수 있도록
+    await cache.put('/lovelog/shared-ready', new Response('1', {
+      headers: { 'Content-Type': 'text/plain' }
+    }));
+
   } catch (e) {
     console.error('[SW] saveSharedFiles error:', e);
   }
