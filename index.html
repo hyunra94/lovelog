@@ -264,8 +264,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 .prog-fill{height:100%;background:var(--pink);border-radius:2px;transition:width .3s;width:0;}
 .toast{position:fixed;bottom:calc(var(--nh)+16px);left:50%;transform:translateX(-50%) translateY(12px);background:rgba(40,25,35,.9);color:#fff;padding:11px 20px;border-radius:99px;font-size:13px;z-index:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:88vw;}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
-.lm-wrap{padding:16px;text-align:center;}
-.lm-btn{padding:10px 28px;border:1.5px solid var(--bdr);border-radius:99px;background:white;font-family:inherit;color:var(--mute);cursor:pointer;font-size:13px;}
+/* ── 로그인 화면 ──────────────── */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-box{background:white;border-radius:24px;padding:36px 28px;width:88%;max-width:340px;text-align:center;box-shadow:0 8px 32px rgba(255,133,162,.2);}
+.login-logo{font-size:48px;margin-bottom:8px;}
+.login-title{font-family:'Permanent Marker',cursive;font-size:26px;color:var(--pink);letter-spacing:2px;margin-bottom:6px;}
+.login-sub{font-size:13px;color:var(--mute);margin-bottom:20px;}
+.login-input{width:100%;padding:12px 16px;border:1.5px solid var(--bdr);border-radius:12px;font-size:16px;font-family:inherit;text-align:center;letter-spacing:4px;color:var(--text);background:var(--bg);outline:none;margin-bottom:10px;}
+.login-input:focus{border-color:var(--pink);}
+.login-err{font-size:12px;color:#E53935;margin-bottom:10px;padding:8px;background:#FFEBEE;border-radius:8px;}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#FF9DB5,#FF6B90);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(255,107,144,.35);}
+.edit-add-media-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1.5px dashed var(--bdr);border-radius:10px;font-size:13px;color:var(--pink);cursor:pointer;background:var(--bg);margin-top:6px;}
 </style>
 </head>
 <body>
@@ -418,6 +427,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
     </div>
 
     <button class="savebtn" onclick="saveSettings()">✓ &nbsp;저장</button>
+    <button class="logout-btn" onclick="logout()">🔓 로그아웃 (비밀번호 초기화)</button>
   </div>
 </div>
 
@@ -470,6 +480,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
         <div class="cover-select-row" id="cover-select-row"><span style="font-size:12px;color:var(--mute)">사진 로딩 중...</span></div>
       </div>
       <div class="det-edit-row">
+        <label>📸 사진/영상 추가</label>
+        <label class="edit-add-media-btn" for="edit-file-input">＋ 갤러리에서 추가</label>
+        <input type="file" id="edit-file-input" accept="image/*,video/*" multiple style="display:none">
+        <div id="edit-upload-status" style="display:none;font-size:12px;margin-top:6px;padding:8px 10px;border-radius:8px;"></div>
+      </div>
+      <div class="det-edit-row">
         <label>⊙ 구분</label>
         <div class="chips" id="edit-cat-chips"></div>
       </div>
@@ -496,7 +512,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
   <div class="img-viewer-hint">핀치로 확대 · 두 손가락으로 축소</div>
 </div>
 
-<div class="loading" id="loading">
+<!-- ══ 로그인 화면 ════════════════════════ -->
+<div class="login-screen" id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">🌸</div>
+    <div class="login-title">LOVE LOG</div>
+    <div class="login-sub">비밀번호를 입력해주세요</div>
+    <input type="password" id="login-pw" class="login-input" placeholder="비밀번호"
+      onkeydown="if(event.key==='Enter')tryLogin()">
+    <div id="login-err" class="login-err" style="display:none">❌ 비밀번호가 틀렸어요</div>
+    <button class="login-btn" onclick="tryLogin()">입장 💕</button>
+  </div>
+</div>
   <div class="spinner"></div>
   <div class="loading-msg" id="loading-msg">처리 중...</div>
   <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
@@ -505,7 +532,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:var(--text);ove
 
 <script>
 let WORKER = localStorage.getItem('ll_worker') || 'https://lovelog.hyunra94.workers.dev';
-const SECRET = 'hyunra2026';
+let SECRET  = localStorage.getItem('ll_secret') || '';
 const SHARE_CACHE = 'love-log-share-v1';
 
 let mediaItems=[],selCat=null,selTags=[],allTags=[],activeFTags=[],lovelogId=null;
@@ -516,12 +543,19 @@ document.addEventListener('DOMContentLoaded', async()=>{
   if('serviceWorker' in navigator)
     navigator.serviceWorker.register('/lovelog/sw.js',{scope:'/lovelog/'}).catch(()=>{});
 
-  loadProfile();
+  // 비밀번호 없으면 로그인 화면 먼저
+  if(!SECRET){ showLoginScreen(); return; }
 
+  initApp();
+});
+
+async function initApp(){
+  loadProfile();
   const today=new Date().toISOString().split('T')[0];
   document.getElementById('date-input').value=today;
   document.getElementById('date-input').addEventListener('change',onDateChange);
   document.getElementById('file-input').addEventListener('change',onFileSelect);
+  document.getElementById('edit-file-input')?.addEventListener('change',onEditFileSelect);
 
   const p=new URLSearchParams(location.search);
   if(p.get('shared')){
@@ -533,9 +567,7 @@ document.addEventListener('DOMContentLoaded', async()=>{
   loadOptions();
   loadGrid(true);
   renderStrip();
-  // 연결 상태 표시 (디버그용)
-  showToast('🔗 연결 중: ' + WORKER.replace('https://','').slice(0,30));
-});
+}
 
 // ── 프로필 ─────────────────────────────────────────────
 function loadProfile(){
@@ -612,8 +644,6 @@ async function loadGrid(reset=false){
   const grid=document.getElementById('photo-grid');
   if(reset){
     nextCursor=null; allEntries=[];
-
-    // ① 캐시 즉시 표시
     const cached=readCache();
     if(cached&&cached.entries.length){
       allEntries=cached.entries;
@@ -624,28 +654,53 @@ async function loadGrid(reset=false){
     }
   }
 
-  // ② 백그라운드(또는 더보기)로 실제 fetch
   try{
-    const q=nextCursor?`/entries?cursor=${nextCursor}`:'/entries';
+    // lazy=1로 즉시 목록 로드 (썸네일 없이)
+    const q=(nextCursor?`/entries?cursor=${nextCursor}&lazy=1`:'/entries?lazy=1');
     const res=await api(q);
     if(reset){
       allEntries=res.entries;
-      writeCache(res.entries,res.hasMore,res.nextCursor);
     } else {
       allEntries=[...allEntries,...res.entries];
     }
-    // 날짜 내림차순 정렬 보장
     allEntries.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     renderGrid(allEntries);
-    // 캘린더 뷰에 있으면 캘린더도 갱신
-    if(currentView==='cal') renderCalendar();
+    writeCache(allEntries,res.hasMore,res.nextCursor);
     nextCursor=res.nextCursor;
     document.getElementById('lm-wrap').style.display=res.hasMore?'block':'none';
     if(allEntries.length===0)
       grid.innerHTML='<div style="grid-column:1/-1;padding:50px 20px;text-align:center;color:var(--mute);font-size:13px;line-height:2">💕<br>아직 기록이 없어요<br>+ 버튼으로 첫 데이트를 기록해봐요!</div>';
+
+    if(currentView==='cal') renderCalendar();
+
+    // 백그라운드에서 썸네일 지연 로딩
+    loadThumbnailsLazy(res.entries);
   }catch(e){
     if(allEntries.length===0)
       grid.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--mute)">⚠️ 불러오기 실패</div>';
+  }
+}
+
+// 썸네일 지연 로딩 — 커버 없는 항목 순차 처리
+async function loadThumbnailsLazy(entries){
+  const noThumb=entries.filter(e=>!e.cover);
+  for(const entry of noThumb){
+    try{
+      const res=await api(`/page-blocks?id=${entry.id}`);
+      if(res.media?.[0]?.url){
+        const url=res.media[0].url;
+        entry.cover=url;
+        const idx=allEntries.findIndex(x=>x.id===entry.id);
+        if(idx!==-1) allEntries[idx].cover=url;
+        // 해당 셀 썸네일만 업데이트
+        const cell=document.querySelector(`.gcell[data-id="${entry.id}"] .gcell-img`);
+        if(cell){
+          cell.innerHTML=`<img src="${url}" alt="" loading="lazy">`;
+        }
+      }
+    }catch{}
+    // 과부하 방지 딜레이
+    await new Promise(r=>setTimeout(r,80));
   }
 }
 function renderGrid(entries){
@@ -658,6 +713,7 @@ function renderGrid(entries){
 
   shown.forEach(entry=>{
     const c=document.createElement('div'); c.className='gcell';
+    c.dataset.id=entry.id;
     c.onclick=()=>openDetail(entry);
 
     // 이미지 영역
@@ -1087,7 +1143,93 @@ function initViewerGestures(){
   };
 }
 
-// ── Write 시트 ─────────────────────────────────────────
+// ── 수정 모드 사진 추가 ─────────────────────────────────────
+async function onEditFileSelect(e){
+  const files=Array.from(e.target.files); e.target.value='';
+  if(!files.length||!currentEntry) return;
+
+  const statusEl=document.getElementById('edit-upload-status');
+  statusEl.style.display='block';
+  statusEl.style.background='#F5F5F5'; statusEl.style.color='#666';
+  statusEl.textContent=`📤 ${files.length}개 업로드 중...`;
+
+  try{
+    const uploaded=await Promise.all(files.map(async f=>{
+      const form=new FormData(); form.append('file',f,f.name);
+      return await apiFd('/upload',form);
+    }));
+    const media=uploaded.map(r=>({url:r.url,mediaType:r.mediaType}));
+
+    await api('/append-blocks','POST',{pageId:currentEntry.id,media});
+
+    // 갤러리 업데이트
+    currentGallery=[...currentGallery,...media.map(m=>({type:m.mediaType,url:m.url}))];
+    renderGallery(currentGallery);
+
+    // 커버 선택 칸에 새 사진 추가
+    const cr=document.getElementById('cover-select-row');
+    if(cr){
+      media.filter(m=>m.mediaType!=='video').forEach(m=>{
+        const th=document.createElement('div');
+        th.className='cover-thumb'; th.dataset.url=m.url;
+        th.innerHTML=`<img src="${m.url}" alt="">`;
+        th.onclick=()=>{
+          editCoverUrl=m.url;
+          cr.querySelectorAll('.cover-thumb').forEach(t=>t.classList.remove('selected'));
+          th.classList.add('selected');
+        };
+        cr.appendChild(th);
+      });
+    }
+
+    statusEl.style.background='#E8F5E9'; statusEl.style.color='#2E7D32';
+    statusEl.textContent=`✅ ${files.length}개 추가됐어요`;
+    setTimeout(()=>statusEl.style.display='none',3000);
+  }catch(err){
+    statusEl.style.background='#FFEBEE'; statusEl.style.color='#C62828';
+    statusEl.textContent='❌ 업로드 실패: '+err.message;
+  }
+}
+
+// ── 로그인 ─────────────────────────────────────────────
+function showLoginScreen(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-err').style.display='none';
+  setTimeout(()=>document.getElementById('login-pw')?.focus(),100);
+}
+async function tryLogin(){
+  const pw=document.getElementById('login-pw').value.trim();
+  if(!pw) return;
+  const btn=document.querySelector('.login-btn');
+  btn.textContent='확인 중...'; btn.disabled=true;
+  try{
+    const res=await fetch(WORKER+'/options',{
+      headers:{'X-Secret-Key':pw,'Content-Type':'application/json'}
+    });
+    const data=await res.json();
+    if(res.status===401||data.error==='Unauthorized'){
+      document.getElementById('login-err').style.display='block';
+      document.getElementById('login-pw').value='';
+    } else {
+      SECRET=pw;
+      localStorage.setItem('ll_secret',pw);
+      document.getElementById('login-screen').style.display='none';
+      initApp();
+    }
+  }catch(e){
+    document.getElementById('login-err').textContent='❌ 연결 실패 — Worker URL을 확인해주세요';
+    document.getElementById('login-err').style.display='block';
+  }finally{
+    btn.textContent='입장 💕'; btn.disabled=false;
+  }
+}
+function logout(){
+  if(!confirm('로그아웃 하면 이 기기에서 비밀번호가 초기화돼요.')) return;
+  localStorage.removeItem('ll_secret');
+  SECRET='';
+  closeSettings();
+  showLoginScreen();
+}
 function openWrite(){
   document.getElementById('date-input').value=new Date().toISOString().split('T')[0];
   showSheet('write-ov','write-sh'); onDateChange();
@@ -1098,6 +1240,16 @@ function closeWrite(){hideSheet('write-ov','write-sh');}
 async function loadSharedFiles(){
   try{
     const cache=await caches.open(SHARE_CACHE);
+
+    // SW가 파일 저장 완료할 때까지 최대 5초 폴링
+    let ready=false;
+    for(let i=0;i<50;i++){
+      const r=await cache.match('/lovelog/shared-ready').catch(()=>null);
+      if(r){ ready=true; break; }
+      await new Promise(res=>setTimeout(res,100));
+    }
+    if(!ready){ showToast('📷 사진을 불러오지 못했어요 (다시 시도해주세요)'); return; }
+
     const mr=await cache.match('/lovelog/shared-meta'); if(!mr) return;
     const meta=await mr.json();
     for(const item of meta){
@@ -1106,7 +1258,8 @@ async function loadSharedFiles(){
       addMedia(blob,item.name);
     }
     const keys=await cache.keys(); await Promise.all(keys.map(k=>cache.delete(k)));
-  }catch(e){console.error('[Share]',e);}
+    showToast(`📸 ${meta.length}개 사진 불러왔어요`);
+  }catch(e){console.error('[Share]',e); showToast('❌ 사진 불러오기 실패');}
 }
 
 // ── 미디어 ─────────────────────────────────────────────
