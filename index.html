@@ -1360,28 +1360,76 @@ async function submitEntry(){
   const memoB=(document.getElementById('memo-body')?.value||'').trim();
   const memo=memoT&&memoB?`${memoT}\n${memoB}`:memoT||memoB;
   const chk=document.getElementById('check-input').checked;
+
   if(!date){showToast('날짜를 선택해주세요');return;}
-  const btn=document.getElementById('submit-btn'); btn.disabled=true;
-  showLoading('미디어 업로드 중...');
+  if(!day&&mediaItems.length===0){showToast('Day 또는 사진을 입력해주세요');return;}
+
+  // 날짜 체크 진행중이면 완료 대기 (최대 1.5초)
+  if(dateTimer){
+    clearTimeout(dateTimer);
+    await checkDate();
+  }
+
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true;
+  showLoading('업로드 중...');
   try{
-    setProgress(10);
-    const uploaded=await Promise.all(mediaItems.map(async(item,i)=>{
-      const form=new FormData(); form.append('file',item.blob,item.name);
-      const r=await apiFd('/upload',form);
-      setProgress(10+Math.round(((i+1)/Math.max(mediaItems.length,1))*60));
-      return{url:r.url,mediaType:r.mediaType};
-    }));
-    setProgress(75); setLoadMsg('노션에 저장 중...');
-    const result=await api('/entry','POST',{date,day,memo,구분:selCat,태그:selTags,checked:chk,lovelogId,media:uploaded,titleProp,checkboxProp});
-    setProgress(100); hideLoading();
+    // 순차 업로드 (진행률 정확하게)
+    const uploaded=[];
+    for(let i=0;i<mediaItems.length;i++){
+      setLoadMsg(`사진 업로드 중... (${i+1}/${mediaItems.length})`);
+      setProgress(10+Math.round(((i)/Math.max(mediaItems.length,1))*55));
+      const form=new FormData();
+      form.append('file',mediaItems[i].blob,mediaItems[i].name);
+      try{
+        const r=await apiFd('/upload',form);
+        uploaded.push({url:r.url,mediaType:r.mediaType});
+      }catch(uploadErr){
+        showToast(`⚠️ ${i+1}번째 파일 업로드 실패 — 건너뜀`);
+        console.warn('[upload skip]',uploadErr);
+      }
+    }
+
+    setProgress(70); setLoadMsg('노션에 저장 중...');
+
+    const result=await api('/entry','POST',{
+      date, day, memo,
+      구분:selCat, 태그:selTags,
+      checked:chk, lovelogId,
+      media:uploaded,
+      titleProp, checkboxProp,
+    });
+
+    setProgress(100);
+
     if(result.success){
       showToast('✅ 등록 완료!');
       if('vibrate'in navigator)navigator.vibrate([30,50,30]);
+
+      // 새 항목 즉시 그리드 맨 위에 반영 (낙관적 업데이트)
+      const newEntry={
+        id: result.pageId||'tmp_'+Date.now(),
+        date, day, memo,
+        cat: selCat||'', tags: selTags,
+        cover: result.cover||uploaded.find(u=>u.mediaType==='image')?.url||null,
+      };
+      allEntries.unshift(newEntry);
+      renderGrid(allEntries);
       clearCache();
-      resetForm(); closeWrite(); loadGrid(true);
-    }else{showToast('❌ 등록 실패: '+(result.error||'알 수 없는 오류'));}
-  }catch(e){hideLoading();showToast('❌ '+e.message);}
-  finally{btn.disabled=false;}
+
+      resetForm(); closeWrite();
+      // 백그라운드에서 실제 데이터 재로드
+      setTimeout(()=>loadGrid(true),2000);
+    }else{
+      showToast('❌ 등록 실패: '+(result.error||'알 수 없는 오류'));
+    }
+  }catch(e){
+    showToast('❌ '+e.message);
+    console.error('[submitEntry]',e);
+  }finally{
+    hideLoading();
+    btn.disabled=false;
+  }
 }
 function resetForm(){
   mediaItems.forEach(m=>URL.revokeObjectURL(m.url)); mediaItems=[];selCat=null;selTags=[];
